@@ -1,0 +1,20 @@
+[
+  {
+    "pipeline": "code-architecture",
+    "type": "doc",
+    "path": "docs/refs/code-architecture.doc.md",
+    "description": "The layers every source file belongs to (endpoint, handler, service, DB service, util, constants/types), the dependency direction between them, why an endpoint may never call a service, why direction decides the layer (pushed in → endpoint, pulled from outside → service triggered by an endpoint), why a handler never touches storage, why everything takes and returns objects, and the hard rules: composition over inheritance, single responsibility, reusability, and no .ts file over 150 lines."
+  },
+  {
+    "pipeline": "toolchain",
+    "type": "ref",
+    "path": "docs/refs/toolchain.ref.md",
+    "description": "What __PROJECT__ is built and checked with: bun installs and Deno runs via nodeModulesDir manual, why every package incl. @types/node must be in package.json and no jsr/https imports, the bun run check/test/lint/fmt/serve commands and what fails each, the 150-line gate, Deno.test with node:assert (tests written and run only when the user asks), --env-file and lowercase variable names, and the invariants."
+  },
+  {
+    "pipeline": "docs",
+    "type": "doc",
+    "path": ".agents/skills/docs/SKILL.md",
+    "description": "The documentation standard: .ref.md vs .flow.md vs .doc.md, feature-level scope, the strict split, the shape of each file, mermaid rules (one diagram per phase, autonumber, every node names its file, <br> not \\n), Key rules / Invariants, and keeping this directory true."
+  }
+]

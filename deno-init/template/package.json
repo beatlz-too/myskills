@@ -1,0 +1,13 @@
+{
+  "name": "__PACKAGE__",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "deno check src/",
+    "test": "deno test --allow-env src/",
+    "lint": "deno lint && deno run --allow-read scripts/checkLineLimit.ts",
+    "fmt": "deno fmt",
+    "serve": "deno run --env-file=.env --allow-env --allow-net=127.0.0.1 src/index.ts"
+  }
+}

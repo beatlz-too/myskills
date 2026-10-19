@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# ts-deno — scaffolds bun + Deno TypeScript projects with the layered architecture, its skills and
+# its docs. The template lives in $TS_DENO_HOME/template (default ~/.local/share/ts-deno/template).
+set -euo pipefail
+
+template="${TS_DENO_HOME:-$HOME/.local/share/ts-deno}/template"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  ts-deno init [--force] [description...]   Scaffold the current directory
+  ts-deno help                              Show this help
+
+init copies the template, names the project after the directory, puts the description at the top
+of AGENTS.md, links .claude/skills to .agents/skills, creates .env from .env.example, installs Deno
+and @types/node with bun, runs fmt, check and lint, and runs git init (never commits).
+It refuses to overwrite an existing project unless --force is given.
+USAGE
+}
+
+escape() { printf '%s' "$1" | sed -e 's/[\\|&]/\\&/g'; }
+
+init() {
+  local force=0
+  if [[ "${1:-}" == "--force" ]]; then force=1; shift; fi
+  local description="${*:-TODO: describe in one paragraph what this project is and does.}"
+  local project package
+  project="$(basename "$(pwd)")"
+  package="$(printf '%s' "$project" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9._-]/-/g' -e 's/^[._-]*//')"
+
+  [[ -d "$template" ]] || { echo "No template at $template" >&2; exit 1; }
+  command -v bun >/dev/null || { echo "bun is not installed: https://bun.sh" >&2; exit 1; }
+
+  local clashes=() path
+  for path in AGENTS.md CLAUDE.md package.json deno.json src docs .agents; do
+    [[ -e "$path" ]] && clashes+=("$path")
+  done
+  if (( ${#clashes[@]} > 0 && force == 0 )); then
+    echo "Refusing to overwrite: ${clashes[*]} (pass --force to overwrite)" >&2
+    exit 1
+  fi
+
+  cp -r "$template"/. .
+  if [[ -f .gitignore ]]; then
+    local line
+    while IFS= read -r line; do
+      [[ -z "$line" ]] || grep -qxF "$line" .gitignore || echo "$line" >> .gitignore
+    done < gitignore.template
+    rm gitignore.template
+  else
+    mv gitignore.template .gitignore
+  fi
+
+  find . -path ./node_modules -prune -o -path ./.git -prune -o -type f -print0 \
+    | xargs -0 sed -i \
+      -e "s|__PROJECT__|$(escape "$project")|g" \
+      -e "s|__PACKAGE__|$(escape "$package")|g" \
+      -e "s|__DESCRIPTION__|$(escape "$description")|g"
+
+  mkdir -p .claude/skills
+  local skill name
+  for skill in .agents/skills/*/; do
+    name="$(basename "$skill")"
+    ln -sfn "../../.agents/skills/$name" ".claude/skills/$name"
+  done
+
+  [[ -f .env ]] || cp .env.example .env
+
+  bun add --dev deno @types/node
+  bun run fmt
+  bun run check
+  bun run lint
+
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then git init -q -b main; fi
+
+  echo
+  echo "Scaffolded $project. Rules: AGENTS.md. Skills: .agents/skills/. Docs: docs/refs/."
+}
+
+case "${1:-help}" in
+  init) shift; init "$@" ;;
+  help | -h | --help) usage ;;
+  *) echo "Unknown command: $1" >&2; usage >&2; exit 1 ;;
+esac
